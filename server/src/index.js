@@ -32,12 +32,15 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
+// Listen on 0.0.0.0 so Render/containers can receive traffic from outside
+const host = process.env.HOST || '0.0.0.0';
+
 mongoose
   .connect(mongoUri)
   .then(async () => {
     console.log('Connected to MongoDB');
     await seedTasksIfEmpty();
-    app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+    app.listen(port, host, () => console.log(`Server running on ${host}:${port}`));
   })
   .catch((error) => {
     console.error('Mongo connection failed:', error.message);
