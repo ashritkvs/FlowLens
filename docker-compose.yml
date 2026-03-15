@@ -26,7 +26,8 @@ services:
     environment:
       PORT: 4000
       MONGODB_URI: mongodb://mongo:27017/flowlens
-      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173}
+      # Allow common Vite dev ports so frontend works on 5173 or 5174
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173,http://localhost:5174,http://localhost:3000}
     depends_on:
       mongo:
         condition: service_healthy
