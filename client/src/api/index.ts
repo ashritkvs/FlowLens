@@ -10,8 +10,9 @@ import {
   TaskFilters,
 } from '../types';
 
-const SERVER_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
-const ANALYTICS_URL = import.meta.env.VITE_ANALYTICS_URL ?? 'http://localhost:8000';
+// In production (Vercel), set VITE_API_URL and VITE_ANALYTICS_URL. No hardcoded localhost in build.
+const SERVER_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000' : '');
+const ANALYTICS_URL = import.meta.env.VITE_ANALYTICS_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {

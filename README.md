@@ -103,11 +103,52 @@ The server automatically seeds a few tasks if the database is empty.
 - `GET /analytics/aging`
 - `GET /analytics/risk`
 
-## Free deployment ideas
-- Frontend: Vercel or Netlify free tier
-- Express API: Render free tier
-- FastAPI: Render free tier
-- Database: MongoDB Atlas free tier
+## Deployment
+
+FlowLens is built for free-tier deployment: **Frontend → Vercel**, **Backend → Render**, **Analytics → Render**, **Database → MongoDB Atlas**.
+
+### 1. Database — MongoDB Atlas
+- Create a [free cluster](https://www.mongodb.com/atlas) and a database user.
+- Get the connection string. Create a database named `flowlens` (or use your own and set `DB_NAME` in analytics).
+- **Express** needs the URI **with** the database: `mongodb+srv://...mongodb.net/flowlens?retryWrites=true&w=majority`.
+- **Analytics** needs the URI **without** the path: `mongodb+srv://...mongodb.net/` and `DB_NAME=flowlens`.
+
+### 2. Backend — Render (Express)
+- New **Web Service**; connect your repo. Root directory: **server**.
+- **Build command:** `npm install` (or leave default).
+- **Start command:** `node src/index.js`.
+- **Environment variables:**  
+  `PORT` (Render sets this), `MONGODB_URI` (Atlas URI with DB name), `CLIENT_ORIGIN` (your Vercel app URL, e.g. `https://flowlens-xxx.vercel.app`).
+- Deploy and copy the service URL (e.g. `https://flowlens-api.onrender.com`).
+
+### 3. Analytics — Render (FastAPI)
+- New **Web Service**; connect the same repo. Root directory: **analytics**.
+- **Build command:** `pip install -r requirements.txt`.
+- **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+- **Environment variables:**  
+  `MONGODB_URI` (Atlas URI without DB path), `DB_NAME=flowlens`, `CORS_ORIGINS` (your Vercel app URL), `PORT` (Render sets this).
+- Deploy and copy the service URL (e.g. `https://flowlens-analytics.onrender.com`).
+
+### 4. Frontend — Vercel
+- Import the repo at [vercel.com](https://vercel.com). Set **Root Directory** to **client**.
+- **Build command:** `npm run build`. **Output directory:** `dist`.
+- **Environment variables (required for production):**  
+  `VITE_API_URL` = your Render backend URL, `VITE_ANALYTICS_URL` = your Render analytics URL.
+- Deploy. Vercel will build with these URLs; no localhost in the production bundle.
+
+### 5. CORS
+- Set **CLIENT_ORIGIN** (Express) and **CORS_ORIGINS** (Analytics) to your exact Vercel URL (no trailing slash). This allows the browser to call your APIs from the deployed frontend.
+
+---
+
+## Live Demo Instructions
+
+1. **Before the interview:** Deploy once (Vercel + Render + Atlas) so the live app and API URLs are ready. Optionally run `docker compose up -d` and the client locally to confirm everything works.
+2. **During the demo:** Open the Vercel URL. Show creating a task, changing status, filters, and the analytics charts. Use the observability panel to show backend/analytics status and refresh.
+3. **If something is down:** Use the Refresh button; if Render free services are sleeping, the first request may take 30–60 seconds. You can briefly show the local setup (`docker compose up -d` + `npm run dev` in client) as a fallback.
+4. **Talking points:** Event-driven task history, separate analytics service, D3 for custom charts, env-based config and CORS for deployment.
+
+---
 
 ## Interview angle
 FlowLens separates transactional task operations from analytical computation. Express handles CRUD and event logging, FastAPI computes metrics and explainability, MongoDB stores current state plus event history, and React + D3 renders interactive visual analytics.
