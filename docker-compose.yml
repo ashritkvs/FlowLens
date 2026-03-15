@@ -1,0 +1,68 @@
+# FlowLens — local development with Docker
+# Run: docker compose up -d
+# Then: frontend at http://localhost:3000 (if using frontend service) or run client locally (npm run dev)
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: flowlens-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: flowlens-server
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      MONGODB_URI: mongodb://mongo:27017/flowlens
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  analytics:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile
+    container_name: flowlens-analytics
+    ports:
+      - "8000:8000"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/
+      DB_NAME: flowlens
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # Optional: built frontend served by nginx (use when you want full stack in Docker)
+  # Build-time env: set VITE_API_URL / VITE_ANALYTICS_URL for production URLs if needed
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+        VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-http://localhost:8000}
+    container_name: flowlens-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+      - analytics
+    profiles:
+      - with-frontend
+
+volumes:
+  mongo_data:
